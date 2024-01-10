@@ -1,0 +1,73 @@
+---
+version: "3"
+
+services:
+  minio:
+    image: quay.io/minio/minio:RELEASE.2024-01-05T22-17-24Z
+    container_name: minio
+    restart: always
+    command:
+      - server
+      - /data
+      - --console-address
+      - :9080
+      - --address
+      - :9000
+    ports:
+      - 9000:9000
+      - 9080:9080
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+    environment:
+      MINIO_ROOT_USER: ROOTNAME
+      MINIO_ROOT_PASSWORD: CHANGEME123
+    volumes:
+      - minio:/data
+
+  nginx:
+    image: nginxinc/nginx-s3-gateway:latest-njs-oss
+    container_name: nginx
+    restart: always
+    volumes:
+      - $PWD/configs/nginx:/etc/nginx/conf.d:ro
+    ports:
+      - 80:80
+    environment:
+      AWS_SECRET_ACCESS_KEY: CHANGEME123
+      AWS_ACCESS_KEY_ID: ROOTNAME
+      S3_REGION: us-east-1
+      AWS_SIGS_VERSION: '4'
+      S3_SERVER: minio
+      S3_SERVER_PORT: '9000'
+      S3_SERVER_PROTO: http
+      S3_BUCKET_NAME: reports
+      ALLOW_DIRECTORY_LIST: 'true'
+      S3_STYLE: path
+      PROVIDE_INDEX_PAGE: 'true'
+      PROXY_CACHE_VALID_OK: 0s
+      PROXY_CACHE_INACTIVE: 0s
+      PROXY_CACHE_VALID_NOTFOUND: 0s
+      PROXY_CACHE_VALID_FORBIDDEN: 0s
+
+  authelia:
+    container_name: authelia
+    image: authelia/authelia:4
+    restart: always
+    expose:
+      - 9091
+    # ports:
+    #   - 9091:9091
+    volumes:
+      - ${PWD}/configs/authelia/config:/config:ro
+      - ${PWD}/configs/authelia/storage:/storage:rw
+      - ${PWD}/configs/authelia/secrets:/run/secrets:ro
+    environment:
+      AUTHELIA_JWT_SECRET_FILE: /run/secrets/JWT_SECRET
+      AUTHELIA_SESSION_SECRET_FILE: /run/secrets/SESSION_SECRET
+      AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE: /run/secrets/STORAGE_ENCRYPTION_KEY
+
+volumes:
+  minio: {}
