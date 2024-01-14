@@ -1,0 +1,21 @@
+---
+http:
+  middlewares:
+    auth:
+      forwardAuth:
+        address: http://authelia:9091/api/verify?rd=https%3A%2F%2Fauth.docker.localhost%2F
+        tls:
+          ca: /etc/tls/cert.pem
+          cert: /etc/tls/cert.pem
+          key: /etc/tls/key.pem
+        trustForwardHeader: true
+        authResponseHeaders:
+          - "Remote-User"
+          - "Remote-Groups"
+          - "Remote-Email"
+          - "Remote-Name"
+
+tls:
+  certificates:
+    - certFile: /etc/tls/cert.pem
+      keyFile: /etc/tls/key.pem

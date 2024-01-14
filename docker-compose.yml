@@ -15,26 +15,23 @@ services:
       - :9000
     ports:
       - 9000:9000
-      - 9080:9080
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
-      interval: 30s
-      timeout: 20s
-      retries: 3
     environment:
       MINIO_ROOT_USER: ROOTNAME
       MINIO_ROOT_PASSWORD: CHANGEME123
     volumes:
       - minio:/data
+    labels:
+      - traefik.http.routers.minio.rule=Host(`minio.docker.localhost`)
+      - traefik.http.services.minio.loadbalancer.server.port=9080
+      - traefik.http.routers.minio.entryPoints=https
+      - traefik.http.routers.minio.tls=true
 
   nginx:
     image: nginxinc/nginx-s3-gateway:latest-njs-oss
     container_name: nginx
     restart: always
-    volumes:
-      - $PWD/configs/nginx:/etc/nginx/conf.d:ro
-    ports:
-      - 80:80
+    expose:
+      - 80
     environment:
       AWS_SECRET_ACCESS_KEY: CHANGEME123
       AWS_ACCESS_KEY_ID: ROOTNAME
@@ -51,6 +48,25 @@ services:
       PROXY_CACHE_INACTIVE: 0s
       PROXY_CACHE_VALID_NOTFOUND: 0s
       PROXY_CACHE_VALID_FORBIDDEN: 0s
+    labels:
+      - traefik.http.routers.nginx.rule=Host(`www.docker.localhost`)
+      - traefik.http.routers.nginx.entryPoints=https
+      - traefik.http.routers.nginx.tls=true
+      - traefik.http.routers.nginx.middlewares=auth@file
+
+  traefik:
+    image: traefik:v2.11
+    container_name: traefik
+    environment:
+      traefik_hostname: docker.localhost
+    volumes:
+      - ${PWD}/configs/traefik:/etc/traefik:ro
+      - ${PWD}/configs/tls:/etc/tls:ro
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - 80:80
+      - 443:443
+      - 8080:8080
 
   authelia:
     container_name: authelia
@@ -58,16 +74,19 @@ services:
     restart: always
     expose:
       - 9091
-    # ports:
-    #   - 9091:9091
     volumes:
       - ${PWD}/configs/authelia/config:/config:ro
       - ${PWD}/configs/authelia/storage:/storage:rw
+      - ${PWD}/configs/tls:/etc/tls:ro
       - ${PWD}/configs/authelia/secrets:/run/secrets:ro
     environment:
       AUTHELIA_JWT_SECRET_FILE: /run/secrets/JWT_SECRET
       AUTHELIA_SESSION_SECRET_FILE: /run/secrets/SESSION_SECRET
       AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE: /run/secrets/STORAGE_ENCRYPTION_KEY
+    labels:
+      - traefik.http.routers.authelia.rule=Host(`auth.docker.localhost`)
+      - traefik.http.routers.authelia.entryPoints=https
+      - traefik.http.routers.authelia.tls=true
 
 volumes:
   minio: {}
