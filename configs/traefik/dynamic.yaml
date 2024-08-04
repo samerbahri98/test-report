@@ -7,15 +7,17 @@ http:
         tls:
           ca: /etc/tls/cert.pem
           cert: /etc/tls/cert.pem
-          key: /etc/tls/key.pem
+          key: /etc/tls/cert.key
         trustForwardHeader: true
         authResponseHeaders:
           - "Remote-User"
           - "Remote-Groups"
           - "Remote-Email"
           - "Remote-Name"
-
 tls:
-  certificates:
-    - certFile: /etc/tls/cert.pem
-      keyFile: /etc/tls/key.pem
+  stores:
+    default:
+      defaultCertificate:
+        certFile: /etc/tls/cert.pem
+        keyFile: /etc/tls/cert.key
+

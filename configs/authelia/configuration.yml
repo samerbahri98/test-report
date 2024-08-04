@@ -1,0 +1,83 @@
+# yaml-language-server: $schema=https://www.authelia.com/schemas/v4.38/json-schema/configuration.json
+# yamllint disable rule:comments-indentation
+---
+certificates_directory: '/etc/tls/'
+theme: 'auto'
+## Options are totp, webauthn, mobile_push.
+# default_2fa_method: ''
+
+server:
+  address: 'tcp://:9091/'
+
+log:
+  level: 'debug'
+  format: 'json'
+  file_path: '/var/log/authelia/authelia.log'
+  keep_stdout: true
+
+telemetry:
+  metrics:
+    enabled: false
+
+totp:
+  disable: false
+  issuer: 'auth.docker.localhost'
+
+webauthn:
+  disable: false
+
+authentication_backend:
+  password_reset:
+    disable: false
+  file:
+    path: '/config/users_database.yml'
+    watch: true
+    password:
+      algorithm: 'bcrypt'
+
+password_policy:
+  standard:
+    enabled: false
+    min_length: 8
+    max_length: 0
+    require_uppercase: true
+    require_lowercase: true
+    require_number: true
+    require_special: true
+  zxcvbn:
+    enabled: false
+    min_score: 3
+
+privacy_policy:
+  enabled: false
+
+access_control:
+  ## Default policy can either be 'bypass', 'one_factor', 'two_factor' or 'deny'. It is the policy applied to any
+  ## resource if there is no policy to be applied to the user.
+  default_policy: 'one_factor'
+
+session:
+  cookies:
+    - name: 'authelia_session'
+      domain: 'docker.localhost'
+      authelia_url: 'https://auth.docker.localhost'
+      default_redirection_url: 'https://www.docker.localhost'
+  name: 'authelia_session'
+  same_site: 'lax'
+  inactivity: '5m'
+  expiration: '1h'
+  remember_me: '1M'
+
+regulation:
+  max_retries: 3
+  find_time: '2 minutes'
+  ban_time: '5 minutes'
+
+storage:
+  local:
+    path: '/storage/db/authelia.sqlite3'
+
+notifier:
+  disable_startup_check: false
+  filesystem:
+    filename: '/var/log/authelia/alert.log'

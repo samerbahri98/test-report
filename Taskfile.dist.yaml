@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+
+version: '3'
+
+vars:
+  GIT_ROOT_DIR:
+    sh: git rev-parse --show-toplevel
+  UID:
+    sh: id -u
+  GID:
+    sh: id -g
+  AUTHELIA_SECRETS:
+    - AUTHELIA_IDENTITY_PROVIDERS_OIDC_HMAC_SECRET_FILE
+    - AUTHELIA_STORAGE_ENCRYPTION_KEY_FILE
+    - AUTHELIA_IDENTITY_VALIDATION_RESET_PASSWORD_JWT_SECRET_FILE
+
+tasks:
+  tls:
+    status:
+      - test -f {{.GIT_ROOT_DIR}}/tmp/tls/cert.key
+      - test -f {{.GIT_ROOT_DIR}}/tmp/tls/cert.pem
+      - openssl x509 -checkend 86400 -noout -in {{.GIT_ROOT_DIR}}/tmp/tls/cert.pem
+    dir: '{{.GIT_ROOT_DIR}}/tmp/tls'
+    cmds:
+      - mkdir -p {{.GIT_ROOT_DIR}}/tmp/tls
+      - openssl req -x509 -newkey rsa:4096 -sha256 -days 3650 -nodes -keyout cert.key -out cert.pem -subj "/CN=docker.localhost" -addext "subjectAltName=DNS:docker.localhost,DNS:*.docker.localhost"
+
+  authelia:secrets:
+    status:
+      - >-
+        {{range $i, $f := .AUTHELIA_SECRETS}}
+          test -f {{$.GIT_ROOT_DIR}}/tmp/authelia/secrets/{{$f}} {{if lt (add1 $i) (len $.AUTHELIA_SECRETS)}} && {{end}}
+        {{end}}
+    dir: '{{$.GIT_ROOT_DIR}}/tmp/authelia/secrets/'
+    cmds:
+      - mkdir -p {{.GIT_ROOT_DIR}}/tmp/authelia/secrets
+      - >-
+        {{range $i, $f := .AUTHELIA_SECRETS}}
+          openssl rand -base64 24 > {{$f}} {{if lt (add1 $i) (len $.AUTHELIA_SECRETS)}} && {{end}}
+        {{end}}
+
+  up:
+    deps: [authelia:secrets, tls]
+    env:
+      UID: '{{.UID}}'
+      GID: '{{.GID}}'
+    cmds:
+      - mkdir -p {{.GIT_ROOT_DIR}}/tmp/authelia/log {{.GIT_ROOT_DIR}}/tmp/authelia/db
+      - docker compose down --remove-orphans
+      - docker compose up --watch --build

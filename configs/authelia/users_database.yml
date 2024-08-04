@@ -15,5 +15,3 @@ users:
     groups:
       - admins
       - dev
-...
-# yamllint enable rule:line-length
