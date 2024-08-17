@@ -1,0 +1,3 @@
+[submodule "pkg/sigv4middleware"]
+	path = pkg/sigv4middleware
+	url = ../sigv4middleware

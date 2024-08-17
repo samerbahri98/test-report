@@ -1,6 +1,14 @@
 ---
 http:
   middlewares:
+    sigv4:
+      plugin:
+        sigv4middleware:
+          accessKey: ROOTNAME
+          secretKey: CHANGEME123
+          service: s3
+          endpoint: minio.docker.localhost
+          region: us-east-1
     auth:
       forwardAuth:
         address: http://authelia:9091/api/verify?rd=https%3A%2F%2Fauth.docker.localhost%2F

@@ -26,3 +26,10 @@ entryPoints:
           - main: docker.localhost
             sans:
               - '*.docker.localhost'
+
+experimental:
+  localPlugins:
+  # plugins:
+    sigv4middleware:
+      moduleName: github.com/samerbahri98/sigv4middleware
+      # version: v0.1.6
